@@ -1,6 +1,8 @@
 name: do-the-job
 on: pull_request
+
 jobs:
+  # Job to start a self-hosted EC2 runner
   start-runner:
     name: Start self-hosted EC2 runner
     runs-on: ubuntu-latest
@@ -14,6 +16,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
+      
       - name: Start EC2 runner
         id: start-ec2-runner
         uses: machulav/ec2-github-runner@v2
@@ -24,26 +27,30 @@ jobs:
           ec2-instance-type: t2.micro
           subnet-id: subnet-09c3b8f8bb6ba89b3
           security-group-id: sg-04e7648cc147d15e1
-          iam-role-name: Self_Hosted_Runners # optional, requires additional permissions
-          aws-resource-tags: > # optional, requires additional permissions
+          iam-role-name: Self_Hosted_Runners # Optional, requires additional permissions
+          aws-resource-tags: > # Optional, requires additional permissions
             [
               {"Key": "Name", "Value": "ec2-github-runner"},
               {"Key": "GitHubRepository", "Value": "${{ github.repository }}"}
             ]
+
+  # Job to perform the actual work on the runner
   do-the-job:
     name: Do the job on the runner
-    needs: start-runner # required to start the main job when the runner is ready
-    runs-on: ${{ needs.start-runner.outputs.label }} # run the job on the newly created runner
+    needs: start-runner # Wait for the runner to be ready
+    runs-on: ${{ needs.start-runner.outputs.label }} # Run on the newly created runner
     steps:
       - name: Hello World
         run: echo 'Hello World!'
+
+  # Job to stop the self-hosted EC2 runner
   stop-runner:
     name: Stop self-hosted EC2 runner
     needs:
-      - start-runner # required to get output from the start-runner job
-      - do-the-job # required to wait when the main job is done
+      - start-runner # Wait to get output from the start-runner job
+      - do-the-job # Wait when the main job is done
     runs-on: ubuntu-latest
-    if: ${{ always() }} # required to stop the runner even if the error happened in the previous jobs
+    if: ${{ always() }} # Stop the runner even if an error happened in previous jobs
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -51,6 +58,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
+      
       - name: Stop EC2 runner
         uses: machulav/ec2-github-runner@v2
         with:
