@@ -2,112 +2,53 @@ name: do-the-job
 on: push
 
 jobs:
-  # Job to start a self-hosted EC2 runner 1
-  start-runner-1:
-    name: Start self-hosted EC2 runner 1
+  # Job to start a self-hosted EC2 runner when needed
+  start-runner:
+    name: Start self-hosted EC2 runner
     runs-on: ubuntu-latest
-    outputs:
-      label: ${{ steps.start-ec2-runner-1.outputs.label }}
-      ec2-instance-id: ${{ steps.start-ec2-runner-1.outputs.ec2-instance-id }}
     steps:
+      - name: Check if runner is needed
+        run: |
+          # Logic to determine if a runner is needed
+          # For example, check the current workload or queue
+          echo "Runner is needed" # Replace with your logic
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-      
-      - name: Start EC2 runner 1
-        id: start-ec2-runner-1
+
+      - name: Start EC2 runner
+        id: start-ec2-runner
         uses: machulav/ec2-github-runner@v2
         with:
           mode: start
           github-token: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
-          # Other configuration settings for runner 1
+          ec2-image-id: ami-069c334ba5dcd5d13
+          ec2-instance-type: t2.micro
+          subnet-id: subnet-09c3b8f8bb6ba89b3
+          security-group-id: sg-04e7648cc147d15e1
 
-  # Job to start a self-hosted EC2 runner 2
-  start-runner-2:
-    name: Start self-hosted EC2 runner 2
-    runs-on: ubuntu-latest
-    outputs:
-      label: ${{ steps.start-ec2-runner-2.outputs.label }}
-      ec2-instance-id: ${{ steps.start-ec2-runner-2.outputs.ec2-instance-id }}
+  # Job to perform the actual work on the runner
+  do-the-job:
+    name: Do the job on the runner
+    needs: start-runner
+    runs-on: ${{ needs.start-runner.outputs.label }}
     steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      
-      - name: Start EC2 runner 2
-        id: start-ec2-runner-2
-        uses: machulav/ec2-github-runner@v2
-        with:
-          mode: start
-          github-token: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
-          # Other configuration settings for runner 2
+      - name: Hello World
+        run: echo 'Hello World!'
 
-  # Job to perform the actual work on runner 1
-  do-the-job-1:
-    name: Do the job on runner 1
-    needs: start-runner-1 # Wait for runner 1 to be ready
-    runs-on: ${{ needs.start-runner-1.outputs.label }} # Run on runner 1
-    steps:
-      - name: Hello World on Runner 1
-        run: echo 'Hello World on Runner 1!'
+  # ... Other jobs and steps
 
-  # Job to perform the actual work on runner 2
-  do-the-job-2:
-    name: Do the job on runner 2
-    needs: start-runner-2 # Wait for runner 2 to be ready
-    runs-on: ${{ needs.start-runner-2.outputs.label }} # Run on runner 2
-    steps:
-      - name: Hello World on Runner 2
-        run: echo 'Hello World on Runner 2!'
-
-  # Job to stop the self-hosted EC2 runner 1
-  stop-runner-1:
-    name: Stop self-hosted EC2 runner 1
+  # Job to stop the self-hosted EC2 runner when not needed
+  stop-runner:
+    name: Stop self-hosted EC2 runner
     needs:
-      - do-the-job-1 # Wait when the job on runner 1 is done
+      - do-the-job # Wait when the job on the runner is done
     runs-on: ubuntu-latest
-    if: ${{ always() }} # Stop runner 1 even if an error happened in the job on runner 1
+    if: ${{ always() }} # Stop the runner even if there was an error in the job on the runner
     steps:
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      
-      - name: Stop EC2 runner 1
-        uses: machulav/ec2-github-runner@v2
-        with:
-          mode: stop
-          github-token: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
-          label: ${{ needs.start-runner-1.outputs.label }}
-          ec2-instance-id: ${{ needs.start-runner-1.outputs.ec2-instance-id }}
-
-  # Job to stop the self-hosted EC2 runner 2
-  stop-runner-2:
-    name: Stop self-hosted EC2 runner 2
-    needs:
-      - do-the-job-2 # Wait when the job on runner 2 is done
-    runs-on: ubuntu-latest
-    if: ${{ always() }} # Stop runner 2 even if an error happened in the job on runner 2
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      
-      - name: Stop EC2 runner 2
-        uses: machulav/ec2-github-runner@v2
-        with:
-          mode: stop
-          github-token: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
-          label: ${{ needs.start-runner-2.outputs.label }}
-          ec2-instance-id: ${{ needs.start-runner-2.outputs.ec2-instance-id }}
+        uses: aws-actions/configure-
