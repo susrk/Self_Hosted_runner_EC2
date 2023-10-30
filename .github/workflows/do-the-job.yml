@@ -1,5 +1,5 @@
 name: do-the-job
-on: pull_request
+on: push
 
 jobs:
   # Job to start a self-hosted EC2 runner
