@@ -27,7 +27,7 @@ jobs:
           ec2-instance-type: t2.micro
           subnet-id: subnet-09c3b8f8bb6ba89b3
           security-group-id: sg-04e7648cc147d15e1
-          iam-role-name: Self_Hosted_Runners # Optional, requires additional permissions
+          #iam-role-name: Self_Hosted_Runners # Optional, requires additional permissions
           aws-resource-tags: > # Optional, requires additional permissions
             [
               {"Key": "Name", "Value": "ec2-github-runner"},
